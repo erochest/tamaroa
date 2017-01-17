@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 
+import collections
 import csv
 from gensim import corpora
 import nltk
@@ -29,15 +30,18 @@ def main():
     for input_file in INPUT_FILES:
         with open(input_file) as fin:
             corpus = list(csv.DictReader(fin, dialect=csv.excel_tab))
-            for doc in corpus:
+            for i, doc in enumerate(corpus):
+                if doc[TEXT_FIELD] == 0:
+                    break
                 text = doc[TEXT_FIELD]
                 tokens = nltk.word_tokenize(text)
-                normalized = []
+
+                normalized = collections.defaultdict(int)
                 for token in tokens:
                     if token.isalnum():
                         token = token.lower()
                         if token not in stoplist:
-                            normalized.append(token)
+                            normalized[token] += 1
                 print(normalized)
                 corpus.append(normalized)
 
