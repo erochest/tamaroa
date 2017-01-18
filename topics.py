@@ -26,7 +26,7 @@ def read_stoplist(filename):
 def main():
     stoplist = read_stoplist(STOPWORD_FILE)
 
-    corpus = []
+    freq_corpus = []
     for input_file in INPUT_FILES:
         with open(input_file) as fin:
             corpus = list(csv.DictReader(fin, dialect=csv.excel_tab))
@@ -42,8 +42,24 @@ def main():
                         token = token.lower()
                         if token not in stoplist:
                             normalized[token] += 1
-                print(normalized)
-                corpus.append(normalized)
+                freq_corpus.append(normalized)
+
+    # this maps tokens to their indexes in the document vectors.
+    vector_index = {}
+    for doc in freq_corpus:
+        for token in doc.keys():
+            if token not in vector_index:
+                vector_index[token] = len(vector_index)
+
+    # TODO: comment the hell out of this
+    # TODO: send
+    corpus = []
+    for doc in freq_corpus:
+        doc_vector = [0] * len(vector_index)
+        for token, freq in doc.items():
+            doc_vector[vector_index[token]] = freq
+            print(doc_vector)
+            corpus.append(doc_vector)
 
 
 # from collections import defaultdict
