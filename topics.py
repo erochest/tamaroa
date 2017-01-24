@@ -5,6 +5,7 @@ import collections
 import csv
 from gensim import corpora
 import nltk
+import pprint
 
 
 INPUT_FILES = [
@@ -119,8 +120,15 @@ def main():
     dictionary = corpora.Dictionary(text_corpus)
     dictionary.save('corpus.dict')
     print(dictionary)
-    import pprint
-    pprint.pprint(dictionary.token2id)
+
+    doc_matrix = []
+    for doc in text_corpus:
+        vec = dictionary.doc2bow(doc)
+        doc_matrix.append(vec)
+        print(doc)
+        print(vec)
+        print()
+    corpora.MmCorpus.serialize('corpus.mm', doc_matrix)
 
 
 if __name__ == '__main__':
