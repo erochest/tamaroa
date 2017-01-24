@@ -69,22 +69,12 @@ def normalize(corpus, tokens_key, stoplist_set):
         yield doc
 
 
-def frequencies(corpus, tokens_key):
-    """This converts each document's token list into a frequency dictionary."""
-    for doc in corpus:
-        freqs = collections.defaultdict(int)
-        for token in doc[tokens_key]:
-            freqs[token] += 1
-        doc[tokens_key] = freqs
-        yield doc
-
-
 def get_corpus_freqs(freqs, tokens_key):
     """Return counts of all tokens for the corpus."""
     counts = collections.defaultdict(int)
     for doc in freqs:
-        for token, freq in doc[tokens_key].items():
-            counts[token] += freq
+        for token in doc[tokens_key]:
+            counts[token] += 1
     return counts
 
 
@@ -101,8 +91,13 @@ def remove_singletons(freqs, singletons, tokens_key):
     """Remove all tokens from freqs that are in singletons."""
     for doc in freqs:
         tokens = doc[tokens_key]
-        for token in tokens.keys() & singletons:
-            del tokens[token]
+
+        removed = []
+        for token in tokens:
+            if token not in singletons:
+                removed.append(token)
+
+        doc[tokens_key] = removed
         yield doc
 
 
@@ -112,14 +107,20 @@ def main():
 
     corpus = read_corpus(INPUT_FILES, TEXT_FIELD)
     tokens = tokenize(corpus, TEXT_FIELD, TOKENS_FIELD)
-    normed = normalize(tokens, TOKENS_FIELD, stoplist)
-    freqs = list(frequencies(normed, TOKENS_FIELD))
-    corpus_freq = get_corpus_freqs(freqs, TOKENS_FIELD)
+    normed = list(normalize(tokens, TOKENS_FIELD, stoplist))
+    corpus_freq = get_corpus_freqs(normed, TOKENS_FIELD)
     singletons = find_singletons(corpus_freq)
-    freqs = list(remove_singletons(freqs, singletons, TOKENS_FIELD))
+    freqs = list(remove_singletons(normed, singletons, TOKENS_FIELD))
+
+    text_corpus = []
     for doc in freqs:
-        print(doc[TOKENS_FIELD])
-    print(singletons)
+        text_corpus.append(doc[TOKENS_FIELD])
+
+    dictionary = corpora.Dictionary(text_corpus)
+    dictionary.save('corpus.dict')
+    print(dictionary)
+    import pprint
+    pprint.pprint(dictionary.token2id)
 
 
 if __name__ == '__main__':
