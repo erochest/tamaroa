@@ -99,7 +99,6 @@ def build_vector_index(corpus, tokens_key):
 
 def vectorize(corpus, tokens_key, index):
     """This creates vector-space representation of all documents."""
-    # TODO: use numpy
     for doc in corpus:
         vector = [0] * len(index)
         for token, freq in doc[tokens_key].items():
@@ -119,8 +118,10 @@ def main():
     freqs = list(frequencies(normed, TOKENS_FIELD))
 
     vector_index = build_vector_index(freqs, TOKENS_FIELD)
+    doc_matrix = []
     for doc in vectorize(freqs, TOKENS_FIELD, vector_index):
         print(doc)
+        doc_matrix.append(doc[TOKENS_FIELD])
 
 
 if __name__ == '__main__':
