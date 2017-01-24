@@ -79,32 +79,30 @@ def frequencies(corpus, tokens_key):
         yield doc
 
 
-def build_vector_index(corpus, tokens_key):
-    """This takes a corpus, where the tokens are in an iterable.
-
-    It returns a dict mapping tokens to unique indexes for building a vector
-    space representation of the corpus.
-
-    If corpus is an iterator, it will be consumed.
-    """
-    vector_index = {}
-
-    for doc in corpus:
-        for token in doc[tokens_key]:
-            if token not in vector_index:
-                vector_index[token] = len(vector_index)
-
-    return vector_index
-
-
-def vectorize(corpus, tokens_key, index):
-    """This creates vector-space representation of all documents."""
-    for doc in corpus:
-        vector = [0] * len(index)
+def get_corpus_freqs(freqs, tokens_key):
+    """Return counts of all tokens for the corpus."""
+    counts = collections.defaultdict(int)
+    for doc in freqs:
         for token, freq in doc[tokens_key].items():
-            i = index[token]
-            vector[i] = freq
-        doc[tokens_key] = vector
+            counts[token] += freq
+    return counts
+
+
+def find_singletons(freqs):
+    """Return a set of all items that occur only once."""
+    singletons = set()
+    for token, freq in freqs:
+        if freq == 1:
+            singletons.add(freq)
+    return singletons
+
+
+def remove_singletons(freqs, singletons, tokens_key):
+    """Remove all tokens from freqs that are in singletons."""
+    for doc in freqs:
+        tokens = doc[tokens_key]
+        for token in tokens.keys() & singletons:
+            del tokens[token]
         yield doc
 
 
@@ -116,12 +114,9 @@ def main():
     tokens = tokenize(corpus, TEXT_FIELD, TOKENS_FIELD)
     normed = normalize(tokens, TOKENS_FIELD, stoplist)
     freqs = list(frequencies(normed, TOKENS_FIELD))
-
-    vector_index = build_vector_index(freqs, TOKENS_FIELD)
-    doc_matrix = []
-    for doc in vectorize(freqs, TOKENS_FIELD, vector_index):
-        print(doc)
-        doc_matrix.append(doc[TOKENS_FIELD])
+    corpus_freq = get_corpus_freqs(freqs, TOKENS_FIELD)
+    singletons = find_singletons(corpus_freq)
+    freqs = list(remove_singletons(freqs, singletons, TOKENS_FIELD))
 
 
 if __name__ == '__main__':
