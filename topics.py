@@ -91,9 +91,9 @@ def get_corpus_freqs(freqs, tokens_key):
 def find_singletons(freqs):
     """Return a set of all items that occur only once."""
     singletons = set()
-    for token, freq in freqs:
+    for token, freq in freqs.items():
         if freq == 1:
-            singletons.add(freq)
+            singletons.add(token)
     return singletons
 
 
@@ -117,6 +117,9 @@ def main():
     corpus_freq = get_corpus_freqs(freqs, TOKENS_FIELD)
     singletons = find_singletons(corpus_freq)
     freqs = list(remove_singletons(freqs, singletons, TOKENS_FIELD))
+    for doc in freqs:
+        print(doc[TOKENS_FIELD])
+    print(singletons)
 
 
 if __name__ == '__main__':
