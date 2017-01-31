@@ -4,16 +4,33 @@
 import collections
 import csv
 from gensim import corpora
+from gensim.models import ldamodel as lda
 import nltk
+import operator
+import os
+import pickle
 import pprint
 
 
+# parameters
+TOPICS = 40
+ALPHA = 'symmetric'
+# ALPHA = 'auto'
+ETA = None
+# ETA = 'auto'
+PASSES = 1
+
+#
 INPUT_FILES = [
     'Manifest_GenRef.tsv',
     ]
 STOPWORD_FILE = 'english.stopwords'
 TEXT_FIELD = 'Title'
 TOKENS_FIELD = '*tokens*'
+
+FREQ_FILE = 'corpus.freq'
+DICTIONARY_FILE = 'corpus.dict'
+CORPUS_FILE = 'corpus.mm'
 
 
 def read_stoplist(filename):
@@ -102,33 +119,78 @@ def remove_singletons(freqs, singletons, tokens_key):
         yield doc
 
 
+def get_text_corpus(freq_docs, tokens_key):
+    """Get text from documents and return as a list. """
+    text_corpus = []
+    for doc in freq_docs:
+        text_corpus.append(doc[tokens_key])
+    return text_corpus
+
+
+def get_dictionary(text_corpus, dictionary_file):
+    """Index the tokens in the corpus and return the dictionary."""
+    dictionary = corpora.Dictionary(text_corpus)
+    dictionary.save(dictionary_file)
+    return dictionary
+
+
+def get_corpus_matrix(dictionary, corpus, corpus_file):
+    """With a dictionary and list of text frequencies, return a matrix."""
+    doc_matrix = []
+    for doc in corpus:
+        vec = dictionary.doc2bow(doc)
+        doc_matrix.append(vec)
+    corpora.MmCorpus.serialize(corpus_file, doc_matrix)
+    return doc_matrix
+
+
 def main():
     """The main process."""
     stoplist = read_stoplist(STOPWORD_FILE)
 
-    corpus = read_corpus(INPUT_FILES, TEXT_FIELD)
-    tokens = tokenize(corpus, TEXT_FIELD, TOKENS_FIELD)
-    normed = list(normalize(tokens, TOKENS_FIELD, stoplist))
-    corpus_freq = get_corpus_freqs(normed, TOKENS_FIELD)
-    singletons = find_singletons(corpus_freq)
-    freqs = list(remove_singletons(normed, singletons, TOKENS_FIELD))
+    if (os.path.exists(CORPUS_FILE) and os.path.exists(DICTIONARY_FILE) and
+        os.path.exists(FREQ_FILE)):
+        print('reading from disk')
+        dictionary = corpora.Dictionary.load(DICTIONARY_FILE)
+        doc_matrix = corpora.MmCorpus(CORPUS_FILE)
+        with open(FREQ_FILE, 'rb') as fin:
+            freqs = pickle.load(fin)
 
-    text_corpus = []
-    for doc in freqs:
-        text_corpus.append(doc[TOKENS_FIELD])
+    else:
+        print('creating corpus')
+        corpus = read_corpus(INPUT_FILES, TEXT_FIELD)
+        tokens = tokenize(corpus, TEXT_FIELD, TOKENS_FIELD)
+        normed = list(normalize(tokens, TOKENS_FIELD, stoplist))
+        corpus_freq = get_corpus_freqs(normed, TOKENS_FIELD)
+        singletons = find_singletons(corpus_freq)
+        freqs = list(remove_singletons(normed, singletons, TOKENS_FIELD))
+        with open(FREQ_FILE, 'wb') as fout:
+            pickle.dump(freqs, fout)
+        text_corpus = get_text_corpus(freqs, TOKENS_FIELD)
+        dictionary = get_dictionary(text_corpus, DICTIONARY_FILE)
+        doc_matrix = get_corpus_matrix(dictionary, text_corpus, CORPUS_FILE)
 
-    dictionary = corpora.Dictionary(text_corpus)
-    dictionary.save('corpus.dict')
-    print(dictionary)
+    print('dictionary size =', len(dictionary))
+    print('corpus size =', len(list(doc_matrix)))
 
-    doc_matrix = []
-    for doc in text_corpus:
-        vec = dictionary.doc2bow(doc)
-        doc_matrix.append(vec)
-        print(doc)
-        print(vec)
-        print()
-    corpora.MmCorpus.serialize('corpus.mm', doc_matrix)
+    # topic modeling
+    print('generating topics')
+    topics = lda.LdaModel(
+        corpus=doc_matrix,
+        id2word=dictionary,
+        num_topics=TOPICS,
+        alpha=ALPHA,
+        eta=ETA,
+        passes=PASSES,
+    )
+    output = topics.print_topics(TOPICS)
+    output.sort(key=operator.itemgetter(0))
+    for t, words in output:
+        print('{} : {}'.format(t, words))
+
+    for doc, bow in zip(freqs, doc_matrix):
+        output = topics[bow]
+        print(doc['Filename'], output)
 
 
 if __name__ == '__main__':
