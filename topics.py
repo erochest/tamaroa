@@ -31,6 +31,8 @@ TOKENS_FIELD = '*tokens*'
 FREQ_FILE = 'corpus.freq'
 DICTIONARY_FILE = 'corpus.dict'
 CORPUS_FILE = 'corpus.mm'
+TOPIC_FILE = 'corpus.topic'
+DOC_FILE = 'corpus.docs'
 
 
 def read_stoplist(filename):
@@ -185,12 +187,14 @@ def main():
     )
     output = topics.print_topics(TOPICS)
     output.sort(key=operator.itemgetter(0))
-    for t, words in output:
-        print('{} : {}'.format(t, words))
+    with open(TOPIC_FILE, 'w') as fout:
+        for t, words in output:
+            fout.write('{} : {}\n'.format(t, words))
 
-    for doc, bow in zip(freqs, doc_matrix):
-        output = topics[bow]
-        print(doc['Filename'], output)
+    with open(DOC_FILE, 'w') as fout:
+        for doc, bow in zip(freqs, doc_matrix):
+            output = topics[bow]
+            fout.write('{} {}\n'.format(doc['Filename'], output))
 
 
 if __name__ == '__main__':
