@@ -21,6 +21,7 @@ ETA = None
 PASSES = 1
 
 #
+CLEAR_CACHE = False
 INPUT_FILES = [
     'Manifest_GenRef.tsv',
     ]
@@ -150,8 +151,8 @@ def main():
     """The main process."""
     stoplist = read_stoplist(STOPWORD_FILE)
 
-    if (os.path.exists(CORPUS_FILE) and os.path.exists(DICTIONARY_FILE) and
-        os.path.exists(FREQ_FILE)):
+    if (not CLEAR_CACHE and os.path.exists(CORPUS_FILE) and
+        os.path.exists(DICTIONARY_FILE) and os.path.exists(FREQ_FILE)):
         print('reading from disk')
         dictionary = corpora.Dictionary.load(DICTIONARY_FILE)
         doc_matrix = corpora.MmCorpus(CORPUS_FILE)
