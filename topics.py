@@ -4,7 +4,7 @@
 import collections
 import csv
 from gensim import corpora
-from gensim.models import ldamodel as lda
+from gensim.models import ldamulticore as lda
 import nltk
 import operator
 import os
@@ -182,7 +182,7 @@ def main():
 
     # topic modeling
     print('generating topics')
-    topics = lda.LdaModel(
+    topics = lda.LdaMulticore(
         corpus=doc_matrix,
         id2word=dictionary,
         num_topics=TOPICS,
