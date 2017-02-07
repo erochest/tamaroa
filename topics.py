@@ -19,6 +19,9 @@ ALPHA = 'symmetric'
 ETA = None
 # ETA = 'auto'
 PASSES = 1
+# minimum token length
+# MIN_TOKEN_LEN = 0
+MIN_TOKEN_LEN = 2
 
 #
 CLEAR_CACHE = False
@@ -71,7 +74,7 @@ def tokenize(corpus, text_key, tokens_key):
         yield doc
 
 
-def normalize(corpus, tokens_key, stoplist_set):
+def normalize(corpus, tokens_key, stoplist_set, min_token_len):
     """This normalizes the tokens under tokens_key.
 
     Tokens are case-folded and filtered for alpha-numeric tokens and by a
@@ -82,7 +85,7 @@ def normalize(corpus, tokens_key, stoplist_set):
     for doc in corpus:
         tokens = []
         for token in doc[tokens_key]:
-            if token.isalnum():
+            if token.isalnum() and len(token) > min_token_len:
                 token = token.lower()
                 if token not in stoplist_set:
                     tokens.append(token)
@@ -163,7 +166,7 @@ def main():
         print('creating corpus')
         corpus = read_corpus(INPUT_FILES, TEXT_FIELD)
         tokens = tokenize(corpus, TEXT_FIELD, TOKENS_FIELD)
-        normed = list(normalize(tokens, TOKENS_FIELD, stoplist))
+        normed = list(normalize(tokens, TOKENS_FIELD, stoplist, MIN_TOKEN_LEN))
         corpus_freq = get_corpus_freqs(normed, TOKENS_FIELD)
         singletons = find_singletons(corpus_freq)
         freqs = list(remove_singletons(normed, singletons, TOKENS_FIELD))
