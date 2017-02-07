@@ -37,8 +37,8 @@ TOKENS_FIELD = '*tokens*'
 FREQ_FILE = 'corpus.freq'
 DICTIONARY_FILE = 'corpus.dict'
 CORPUS_FILE = 'corpus.mm'
-TOPIC_FILE = 'corpus.topic'
-DOC_FILE = 'corpus.docs'
+TOPIC_FILE = 'corpus-topic.csv'
+DOC_FILE = 'corpus-docs.csv'
 
 
 def process_file(input_file):
@@ -204,16 +204,27 @@ def main():
         eta=ETA,
         passes=PASSES,
     )
-    output = topics.print_topics(TOPICS)
-    output.sort(key=operator.itemgetter(0))
+    print('writing topic terms to {}'.format(TOPIC_FILE))
     with open(TOPIC_FILE, 'w') as fout:
-        for t, words in output:
-            fout.write('{} : {}\n'.format(t, words))
+        writer = csv.writer(fout)
+        for topic_number in range(TOPICS):
+            terms = topics.get_topic_terms(topic_number)
+            terms.sort(key=operator.itemgetter(1), reverse=True)
+            row = [topic_number]
+            for (term_id, _) in terms:
+                row.append(dictionary.get(term_id))
+            writer.writerow(row)
 
+    print('writing document topics to {}'.format(DOC_FILE))
     with open(DOC_FILE, 'w') as fout:
+        writer = csv.writer(fout)
+        writer.writerow(['filename'] + list(range(TOPICS)))
         for doc, bow in zip(freqs, doc_matrix):
-            output = topics[bow]
-            fout.write('{} {}\n'.format(doc['Filename'], output))
+            row = [0.0] * TOPICS
+            for (topic_number, score) in topics[bow]:
+                row[topic_number] = score
+            row = [doc['Filename']] + row
+            writer.writerow(row)
 
 
 if __name__ == '__main__':
