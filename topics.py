@@ -19,16 +19,17 @@ ALPHA = 'symmetric'
 ETA = None
 # ETA = 'auto'
 PASSES = 1
-# minimum token length
-# MIN_TOKEN_LEN = 0
-MIN_TOKEN_LEN = 2
 
-#
+# !!! If any of the settings below change, re-run with CLEAR_CACHE set to True
+# in order to generate a new corpus.
 CLEAR_CACHE = False
 INPUT_FILES = [
     'Manifest_GenRef.tsv',
     ]
 STOPWORD_FILE = 'english.stopwords'
+# minimum token length
+# MIN_TOKEN_LEN = 0
+MIN_TOKEN_LEN = 2
 TEXT_FIELD = 'Title'
 TOKENS_FIELD = '*tokens*'
 
