@@ -5,6 +5,7 @@ import collections
 import csv
 from gensim import corpora
 from gensim.models import ldamulticore as lda
+from multiprocessing import Pool
 import nltk
 import operator
 import os
@@ -40,6 +41,18 @@ TOPIC_FILE = 'corpus.topic'
 DOC_FILE = 'corpus.docs'
 
 
+def process_file(input_file):
+    """Do everything to process a single file."""
+    stoplist = read_stoplist(STOPWORD_FILE)
+    corpus = read_file(input_file, TEXT_FIELD)
+    tokens = tokenize(corpus, TEXT_FIELD, TOKENS_FIELD)
+    normed = list(normalize(tokens, TOKENS_FIELD, stoplist, MIN_TOKEN_LEN))
+    corpus_freq = get_corpus_freqs(normed, TOKENS_FIELD)
+    singletons = find_singletons(corpus_freq)
+    freqs = list(remove_singletons(normed, singletons, TOKENS_FIELD))
+    return freqs
+
+
 def read_stoplist(filename):
     """Read the stopword list as a set."""
     with open(filename) as fin:
@@ -49,17 +62,22 @@ def read_stoplist(filename):
         return words
 
 
+def read_file(input_file, text_key):
+    """This reads a single CSV input file."""
+    with open(input_file) as fin:
+        for doc in csv.DictReader(fin, dialect=csv.excel_tab):
+            text = doc[text_key]
+            if text == 0:
+                break
+            yield doc
+
+
 def read_corpus(input_files, text_key):
     """\
     This reads a CSV input file into an iterator over lists of dicts.
     """
     for input_file in input_files:
-        with open(input_file) as fin:
-            for doc in csv.DictReader(fin, dialect=csv.excel_tab):
-                text = doc[text_key]
-                if text == 0:
-                    break
-                yield doc
+        yield from read_file(input_file, text_key)
 
 
 def tokenize(corpus, text_key, tokens_key):
@@ -153,8 +171,6 @@ def get_corpus_matrix(dictionary, corpus, corpus_file):
 
 def main():
     """The main process."""
-    stoplist = read_stoplist(STOPWORD_FILE)
-
     if (not CLEAR_CACHE and os.path.exists(CORPUS_FILE) and
         os.path.exists(DICTIONARY_FILE) and os.path.exists(FREQ_FILE)):
         print('reading from disk')
@@ -165,12 +181,10 @@ def main():
 
     else:
         print('creating corpus')
-        corpus = read_corpus(INPUT_FILES, TEXT_FIELD)
-        tokens = tokenize(corpus, TEXT_FIELD, TOKENS_FIELD)
-        normed = list(normalize(tokens, TOKENS_FIELD, stoplist, MIN_TOKEN_LEN))
-        corpus_freq = get_corpus_freqs(normed, TOKENS_FIELD)
-        singletons = find_singletons(corpus_freq)
-        freqs = list(remove_singletons(normed, singletons, TOKENS_FIELD))
+        freqs = []
+        with Pool() as pool:
+            for file_freqs in pool.map(process_file, INPUT_FILES):
+                freqs += file_freqs
         with open(FREQ_FILE, 'wb') as fout:
             pickle.dump(freqs, fout)
         text_corpus = get_text_corpus(freqs, TOKENS_FIELD)
