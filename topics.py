@@ -4,13 +4,15 @@
 import collections
 import csv
 from gensim import corpora
-from gensim.models import ldamulticore as lda
+# from gensim.models import ldamulticore as lda
+from gensim.models import ldamodel as lda
 from multiprocessing import Pool
 import nltk
 import operator
 import os
 import pickle
 import pprint
+import sys
 
 
 # parameters
@@ -19,11 +21,11 @@ ALPHA = 'symmetric'
 # ALPHA = 'auto'
 ETA = None
 # ETA = 'auto'
-PASSES = 1
+PASSES = 100
 
 # !!! If any of the settings below change, re-run with CLEAR_CACHE set to True
 # in order to generate a new corpus.
-CLEAR_CACHE = False
+CLEAR_CACHE = True
 INPUT_FILES = [
     'Manifest_GenRef.tsv',
     ]
@@ -31,7 +33,10 @@ STOPWORD_FILE = 'english.stopwords'
 # minimum token length
 # MIN_TOKEN_LEN = 0
 MIN_TOKEN_LEN = 2
-TEXT_FIELD = 'Title'
+# TEXT_FIELD = 'Title'
+# ID_FIELD = 'Filename'
+TEXT_FIELD = 'F1_Question_FreeText'
+ID_FIELD = 'ResponseId'
 TOKENS_FIELD = '*tokens*'
 
 FREQ_FILE = 'corpus.freq'
@@ -65,10 +70,16 @@ def read_stoplist(filename):
 def read_file(input_file, text_key):
     """This reads a single CSV input file."""
     with open(input_file) as fin:
-        for doc in csv.DictReader(fin, dialect=csv.excel_tab):
-            text = doc[text_key]
+        for doc in csv.DictReader(fin):
+            try:
+                text = doc[text_key]
+            except KeyError:
+                print('Keys: %s' % (doc.keys(),))
+                raise
             if text == 0:
                 break
+            elif not text:
+                continue
             yield doc
 
 
@@ -171,6 +182,9 @@ def get_corpus_matrix(dictionary, corpus, corpus_file):
 
 def main():
     """The main process."""
+    inputs = sys.argv[1:] or INPUT_FILES
+    print('inputs', inputs)
+
     if (not CLEAR_CACHE and os.path.exists(CORPUS_FILE) and
         os.path.exists(DICTIONARY_FILE) and os.path.exists(FREQ_FILE)):
         print('reading from disk')
@@ -182,9 +196,11 @@ def main():
     else:
         print('creating corpus')
         freqs = []
-        with Pool() as pool:
-            for file_freqs in pool.map(process_file, INPUT_FILES):
-                freqs += file_freqs
+        #  with Pool() as pool:
+            #  for file_freqs in pool.map(process_file, inputs):
+                #  freqs += file_freqs
+        for filename in inputs:
+            freqs += process_file(filename)
         with open(FREQ_FILE, 'wb') as fout:
             pickle.dump(freqs, fout)
         text_corpus = get_text_corpus(freqs, TOKENS_FIELD)
@@ -196,7 +212,8 @@ def main():
 
     # topic modeling
     print('generating topics')
-    topics = lda.LdaMulticore(
+    # topics = lda.LdaMulticore(
+    topics = lda.LdaModel(
         corpus=doc_matrix,
         id2word=dictionary,
         num_topics=TOPICS,
