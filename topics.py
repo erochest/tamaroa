@@ -16,7 +16,7 @@ import sys
 
 
 # parameters
-TOPICS = 40
+TOPICS = 10
 ALPHA = 'symmetric'
 # ALPHA = 'auto'
 ETA = None
@@ -235,12 +235,14 @@ def main():
     print('writing document topics to {}'.format(DOC_FILE))
     with open(DOC_FILE, 'w') as fout:
         writer = csv.writer(fout)
+        # Add extra column names here.
         writer.writerow(['filename'] + list(range(TOPICS)))
         for doc, bow in zip(freqs, doc_matrix):
             row = [0.0] * TOPICS
             for (topic_number, score) in topics[bow]:
                 row[topic_number] = score
-            row = [doc['Filename']] + row
+            # You can add extra rows in the output here.
+            row = [doc[ID_FIELD]] + row
             writer.writerow(row)
 
 
