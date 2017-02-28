@@ -4,8 +4,8 @@
 import collections
 import csv
 from gensim import corpora
-# from gensim.models import ldamulticore as lda
-from gensim.models import ldamodel as lda
+from gensim.models import ldamulticore as lda
+# from gensim.models import ldamodel as lda
 from multiprocessing import Pool
 import nltk
 import operator
@@ -35,8 +35,10 @@ STOPWORD_FILE = 'english.stopwords'
 MIN_TOKEN_LEN = 2
 # TEXT_FIELD = 'Title'
 # ID_FIELD = 'Filename'
-TEXT_FIELD = 'F1_Question_FreeText'
-ID_FIELD = 'ResponseId'
+# TEXT_FIELD = 'F1_Question_FreeText'
+# ID_FIELD = 'ResponseId'
+TEXT_FIELD = 'text'
+ID_FIELD = 'id'
 TOKENS_FIELD = '*tokens*'
 
 FREQ_FILE = 'corpus.freq'
@@ -196,11 +198,11 @@ def main():
     else:
         print('creating corpus')
         freqs = []
-        #  with Pool() as pool:
-            #  for file_freqs in pool.map(process_file, inputs):
-                #  freqs += file_freqs
-        for filename in inputs:
-            freqs += process_file(filename)
+        with Pool() as pool:
+            for file_freqs in pool.map(process_file, inputs):
+                freqs += file_freqs
+        #  for filename in inputs:
+            #  freqs += process_file(filename)
         with open(FREQ_FILE, 'wb') as fout:
             pickle.dump(freqs, fout)
         text_corpus = get_text_corpus(freqs, TOKENS_FIELD)
@@ -212,8 +214,8 @@ def main():
 
     # topic modeling
     print('generating topics')
-    # topics = lda.LdaMulticore(
-    topics = lda.LdaModel(
+    # topics = lda.LdaModel(
+    topics = lda.LdaMulticore(
         corpus=doc_matrix,
         id2word=dictionary,
         num_topics=TOPICS,
