@@ -109,7 +109,7 @@ def main(config_file, subreddit_name, bot_name, from_date, to_date, output):
                                                 to_date.timestamp()):
             writer.writerow(submission_posting(submission))
             submission.comments.replace_more(limit=0)
-            writer.writerow(
+            writer.writerows(
                 comment_posting(comment)
                 for comment in submission.comments.list()
                 )
