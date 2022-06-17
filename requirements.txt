@@ -2,7 +2,7 @@ boto==2.45.0
 bz2file==0.98
 gensim==0.13.4.1
 nltk==3.2.2
-numpy==1.11.3
+numpy==1.21.0
 requests==2.12.4
 scipy==0.18.1
 six==1.10.0
